@@ -168,7 +168,7 @@ class MegaminXolver:
     self.hashDepth = depth
     print( 'Hash table (depth: %i; entries: %i) done in %fs' % (depth, k, time.time() - startTime) )
 
-  def solve(self, state, maxSolutions = 0):
+  def solve(self, state, maxSolutions = 1):
 
     queue = deque()
     k = 0
@@ -219,7 +219,7 @@ class MegaminXolver:
           endTime = time.time() - startTime
           solution = self.getAlgorithm( currentSolution + isSolved )
           solutions += 1
-          print('Found a solution in %f seconds\n%s (%i,%i moves)' % (endTime, solution['string'], solution['turns'], solution['fTurns'] ) )
+          print('Found a solution #%i/%i in %f seconds\n%s (%i,%i moves)' % (solutions, maxSolutions, endTime, solution['string'], solution['turns'], solution['fTurns'] ) )
           if solutions >= maxSolutions:
             return {
               'state': currentState,

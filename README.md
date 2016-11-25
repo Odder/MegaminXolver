@@ -30,7 +30,7 @@ Solve it
 megaminx.solve(scramble, 5) # 5 = number of solutions
 ```
 
-You can now run it with Python 3! (I use PyPy for a massive speed boost)
+You can now run it with Python 2/3! (I use PyPy for a massive speed boost)
 
 # What sort of magic is this?
 Yeah well, people always says "Python is slow" so I thought it would be a great choice for something that needs to solve computationally "heavy" tasks. My first version that could solve something, spend almost 1 minute for finding a 6 move solution, so in order to reach 20 moves in under 20 seconds, I had to use quite a few neat tricks.
