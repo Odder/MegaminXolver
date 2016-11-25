@@ -32,6 +32,9 @@ megaminx.solve(scramble, 5) # 5 = number of solutions
 
 You can now run it with Python 2/3! (I use PyPy for a massive speed boost)
 
+## CIL
+I made a (very) simple program to read files into the MegaminXolver from command line. just run CIL.py with your python 2 compiler and do whatever it asks for, it's reading .mx files, no need to add that extension yourself when it asks for file name.
+
 # What sort of magic is this?
 Yeah well, people always says "Python is slow" so I thought it would be a great choice for something that needs to solve computationally "heavy" tasks. My first version that could solve something, spend almost 1 minute for finding a 6 move solution, so in order to reach 20 moves in under 20 seconds, I had to use quite a few neat tricks.
 
