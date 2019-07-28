@@ -1,341 +1,306 @@
-import time, itertools
+import time
+import itertools
 from collections import deque
 
+
 class MegaminXolver:
-  
-  def __init__(self):
+    def __init__(self):
+        self.state = (0, 0, 0)
+        self.solved_state = (0, 0, 0)
+        self.has_hash_table = False
+        self.hash_table = {}
+        self.has_depth = 0
+        self.rev_ep_move_table = {}
+        self.ep_move_table = {}
+        self.rev_cp_move_table = {}
+        self.cp_move_table = {}
+        self.rev_co_move_table = {}
+        self.co_move_table = {}
 
-    self.state = {
-      'edgePermutation': 0,
-      'cornerOrientation': 0,
-      'cornerPermutation': 0
-    }
+    def create_move_table(self):
+        eps = itertools.permutations(range(9))
+        cps = itertools.permutations(range(8))
+        cos = itertools.product(range(3), repeat=8)
+        self.rev_ep_move_table = {}
+        self.rev_cp_move_table = {}
+        self.rev_co_move_table = {}
+        self.ep_move_table = [x for x in range(362880)]
+        self.cp_move_table = [x for x in range(40320)]
+        self.co_move_table = [x for x in range(2187)]
+        k = 0
 
-    self.solvedState = {
-      'edgePermutation': 0,
-      'cornerOrientation': 0,
-      'cornerPermutation': 0
-    }
+        start_time = time.time()
 
-    self.hasHashTable = False
-    self.hashTable = []
-    self.hashDepth = 0
-    self.revEPMoveTable = {}
-    self.EPMoveTable = {}
-    self.revCPMoveTable = {}
-    self.CPMoveTable = {}
-    self.revCOMoveTable = {}
-    self.COMoveTable = {}
+        # EP
+        for permutation in eps:
+            self.rev_ep_move_table[permutation] = k
+            k += 1
+        for permutation in self.rev_ep_move_table.keys():
+            case = list(permutation)
+            k = self.rev_ep_move_table[permutation]
+            case_u, case_l = case[:], case[:]
 
-  def createMoveTable(self):
-    
-    edgePermutations = itertools.permutations( range(9) )
-    cornerPermutations = itertools.permutations( range(8) )
-    cornerOrientations = itertools.product( range(3), repeat=8 )
-    self.revEPMoveTable = {}
-    self.revCPMoveTable = {}
-    self.revCOMoveTable = {}
-    self.EPMoveTable = [x for x in range(362880)]
-    self.CPMoveTable = [x for x in range(40320)]
-    self.COMoveTable = [x for x in range(2187)]
-    k = 0
+            case_u[0], case_u[1], case_u[2], case_u[3], case_u[4] = case[4], case[0], case[1], case[2], case[3]
+            case_l[4], case_l[5], case_l[6], case_l[7], case_l[8] = case[8], case[4], case[5], case[6], case[7]
 
-    startTime = time.time()
+            self.ep_move_table[k] = [self.rev_ep_move_table[tuple(case_u)], self.rev_ep_move_table[tuple(case_l)]]
 
-    # EP
-    for permutation in edgePermutations:
+        # CP
+        k = 0
+        for permutation in cps:
+            self.rev_cp_move_table[permutation] = k
+            k += 1
+        for permutation in self.rev_cp_move_table.keys():
+            case = list(permutation)
+            k = self.rev_cp_move_table[permutation]
+            case_u, case_l = case[:], case[:]
 
-      self.revEPMoveTable[','.join([str(x) for x in permutation])] = k
-      k += 1
+            case_u[0], case_u[1], case_u[2], case_u[3], case_u[4] = case[4], case[0], case[1], case[2], case[3]
+            case_l[0], case_l[4], case_l[5], case_l[6], case_l[7] = case[7], case[0], case[4], case[5], case[6]
 
-    for permutation in self.revEPMoveTable.keys():
+            self.cp_move_table[k] = [self.rev_cp_move_table[tuple(case_u)], self.rev_cp_move_table[tuple(case_l)]]
 
-      case = [int(x) for x in permutation.split(',')]
-      k = self.revEPMoveTable[permutation]
-      caseU, caseL = case[:], case[:]
-      
-      caseU[0], caseU[1], caseU[2], caseU[3], caseU[4] = case[4], case[0], case[1], case[2], case[3]
-      caseL[4], caseL[5], caseL[6], caseL[7], caseL[8] = case[8], case[4], case[5], case[6], case[7]
+        # CO
+        k = 0
+        for permutation in cos:
+            if sum(permutation) % 3 != 0:
+                continue
+            self.rev_co_move_table[permutation] = k
+            k += 1
 
-      strCaseU = ','.join([str(x) for x in caseU])
-      strCaseL = ','.join([str(x) for x in caseL])
+        for permutation in self.rev_co_move_table.keys():
+            case = list(permutation)
+            k = self.rev_co_move_table[permutation]
+            case_u, case_l = case[:], case[:]
 
-      self.EPMoveTable[k] = [self.revEPMoveTable[strCaseU], self.revEPMoveTable[strCaseL]]
+            case_u[0], case_u[1], case_u[2], case_u[3], case_u[4] = case[4], case[0], case[1], case[2], case[3]
+            case_l[0], case_l[4], case_l[5], case_l[6], case_l[7] = (case[7] + 2) % 3, (case[0] + 1) % 3, case[4], (
+                        case[5] + 2) % 3, (case[6] + 1) % 3
 
-    # CP
-    k = 0
-    for permutation in cornerPermutations:
+            self.co_move_table[k] = [self.rev_co_move_table[tuple(case_u)], self.rev_co_move_table[tuple(case_l)]]
 
-      self.revCPMoveTable[','.join([str(x) for x in permutation])] = k
-      k += 1
+        print('Move tables done in %fs' % (time.time() - start_time,))
 
-    for permutation in self.revCPMoveTable.keys():
+    def create_hash_table(self, depth):
+        queue = deque()
+        start_time = time.time()
+        print('Creating hash table')
 
-      case = [int(x) for x in permutation.split(',')]
-      k = self.revCPMoveTable[permutation]
-      caseU, caseL = case[:], case[:]
-      
-      caseU[0], caseU[1], caseU[2], caseU[3], caseU[4] = case[4], case[0], case[1], case[2], case[3]
-      caseL[0], caseL[4], caseL[5], caseL[6], caseL[7] = case[7], case[0], case[4], case[5], case[6]
+        entries = 8 * pow(4, depth - 2)
+        k = 8
+        self.hash_table = {}
 
-      strCaseU = ','.join([str(x) for x in caseU])
-      strCaseL = ','.join([str(x) for x in caseL])
+        # Create intial queue
+        for i in range(2):
+            for j in range(4):
+                state = self.solved_state
+                current_state = self.fast_turn(state, (i << 3) + j)
+                current_solution = [(i << 3) + j]
 
-      self.CPMoveTable[k] = [self.revCPMoveTable[strCaseU], self.revCPMoveTable[strCaseL]]
+                hash = self.get_hash_from_state(current_state)
+                self.hash_table[hash] = current_solution
 
-    # CO
-    k = 0
-    for permutation in cornerOrientations:
+                queue.append({
+                    'state': current_state,
+                    'axis_applied': i,
+                    'solution': current_solution
+                })
 
-      if sum(permutation) % 3 != 0: 
-        continue
+        for solution in range(entries):
+            current_position = queue.popleft()
+            old_state = current_position['state']
 
-      self.revCOMoveTable[','.join([str(x) for x in permutation])] = k
-      k += 1
+            for j in range(4):
+                current_solution = current_position['solution'][:]
 
-    for permutation in self.revCOMoveTable.keys():
+                # If not solution, append to queue
+                i = (current_position['axis_applied'] + 1) & 1
+                move_to_apply = (i << 3) + j
 
-      case = [int(x) for x in permutation.split(',')]
-      k = self.revCOMoveTable[permutation]
-      caseL = case[:]
-      caseU = case[:]
-      
-      caseU[0], caseU[1], caseU[2], caseU[3], caseU[4] = case[4], case[0], case[1], case[2], case[3]
-      caseL[0], caseL[4], caseL[5], caseL[6], caseL[7] = (case[7] + 2) % 3, (case[0] + 1) % 3, case[4], (case[5] + 2) % 3, (case[6] + 1) % 3
+                current_state = self.fast_turn(old_state, move_to_apply)
+                current_solution.append(move_to_apply)
 
-      strCaseL = ','.join([str(x) for x in caseL])
-      strCaseU = ','.join([str(x) for x in caseU])
+                # Append to hashtable
+                hash = self.get_hash_from_state(current_state)
+                self.hash_table[hash] = current_solution
 
-      self.COMoveTable[k] = [self.revCOMoveTable[strCaseU], self.revCOMoveTable[strCaseL]]
+                queue.append({
+                    'state': current_state,
+                    'axis_applied': i,
+                    'solution': current_solution
+                })
 
+                k += 1
 
-    print( 'Move tables done in %fs' % (time.time() - startTime,) )
+        self.has_hash_table = True
+        self.has_depth = depth
+        print('Hash table (depth: %i; entries: %i) done in %fs' % (depth, k, time.time() - start_time))
 
-  def createHashTable(self, depth):
+    def solve(self, state, max_solutions=1):
+        queue = deque()
+        k = 0
+        solutions = 0
+        start_time = time.time()
 
-    queue = deque()
-    startTime = time.time()
-    print( 'Creating hash table' )
+        # create initial queue
+        for i in range(2):
+            for j in range(4):
+                current_state = self.fast_turn(state, (i << 3) + j)
+                current_solution = [(i << 3) + j]
+                node = (current_state, i, current_solution)
+                queue.append(node)
 
-    entries = 8 * pow(4, depth-2)
-    k = 8
-    self.hashTable = {}
+        while True:
+            k += 1
+            state, axis, prev_solution = queue.popleft()
+            i = (axis + 1) & 1
 
-    #Create Intial queue
-    for i in range(2):
-      for j in range(4):
-        state = dict(self.solvedState)
-        currentState = self.doFastTurn(state, (i<<3) + j)
-        currentSolution = [(i<<3) + j]
+            for j in range(4):
+                current_state = state
+                current_solution = list(prev_solution)
 
-        hash = self.getHashFromState(currentState)
-        self.hashTable[hash] = currentSolution
+                # Apply move to current iteration
+                move = (i << 3) + j
 
-        queue.append({
-          'state': currentState,
-          'axisApplied': i,
-          'solution': currentSolution
-        })
+                current_state = self.fast_turn(current_state, move)
+                current_solution.append(move)
 
-    for solution in range(entries):
-      currentPosition = queue.popleft()
-      oldState = dict(currentPosition['state'])
+                # Is solved?
+                is_solved = self.is_solved(current_state)
 
-      for j in range(4):
+                if not is_solved:
+                    node = (current_state, i, current_solution)
+                    queue.append(node)
+                else:
+                    end_time = time.time() - start_time
+                    solution = self.get_algorithm(current_solution + is_solved)
+                    solutions += 1
+                    print('Found a solution #%i/%i in %f seconds\n%s (%i,%i moves)' %
+                          (solutions,
+                           max_solutions,
+                           end_time,
+                           solution['string'],
+                           solution['turns'],
+                           solution['fTurns']
+                           )
+                          )
+                    if solutions >= max_solutions:
+                        return {
+                            'state': current_state,
+                            'solution': solution
+                        }
 
-        currentSolution = currentPosition['solution'][:]
+    def fast_turn(self, state, move):
+        ep, cp, co = state
+        surface = move >> 3
+        length = (move % 4) + 1
 
-        # If not solution, append to queue
-        i = ( currentPosition['axisApplied'] + 1 ) & 1
-        moveToApply = (i<<3) + j 
+        return (
+                   self.ep_turn(ep, surface, length),
+                   self.cp_turn(cp, surface, length),
+                   self.co_turn(co, surface, length)
+        )
 
-        currentState = self.doFastTurn(oldState, moveToApply)
-        currentSolution.append(moveToApply)
+    def ep_turn(self, state, surface, length):
+        for i in range(length):
+            state = self.ep_move_table[state][surface]
+        return state
 
-        # Append to hashtable
-        hash = self.getHashFromState(currentState)
-        self.hashTable[hash] = currentSolution
+    def cp_turn(self, state, surface, length):
+        for i in range(length):
+            state = self.cp_move_table[state][surface]
+        return state
 
-        queue.append({
-          'state': currentState,
-          'axisApplied': i,
-          'solution': currentSolution
-        })
+    def co_turn(self, state, surface, length):
+        for i in range(length):
+            state = self.co_move_table[state][surface]
+        return state
 
-        k+=1
+    def is_solved(self, state):
+        if self.has_hash_table:
+            hashed_state = self.get_hash_from_state(state)
+            if hashed_state in self.hash_table:
+                reverse_solution = self.hash_table[self.get_hash_from_state(state)]
+                solution = self.get_move_string_from_solution(reverse_solution)
+                # print('Found solution in hashtable', solution)
+                return solution
 
-    self.hasHashTable = True
-    self.hashDepth = depth
-    print( 'Hash table (depth: %i; entries: %i) done in %fs' % (depth, k, time.time() - startTime) )
+        if state == self.solved_state:
+            return [16]
 
-  def solve(self, state, maxSolutions = 1):
+        return False
 
-    queue = deque()
-    k = 0
-    solutions = 0
-    startTime = time.time()
+    def apply_state(self, state):
+        str_ep = ','.join([str(x) for x in state['ep']])
+        state['ep'] = self.rev_ep_move_table[str_ep]
+        self.state = state
 
-    # create initial queue
-    for i in range(2):
-      for j in range(4):
-        currentState = dict(state)
-        currentState = self.doFastTurn(state, (i<<3) + j)
-        currentSolution = [(i<<3) + j]
+    def apply_sequence(self, moves, state):
+        moves = moves.split(' ')
 
-        queue.append({
-          'state': currentState,
-          'axisApplied': i,
-          'solution': currentSolution
-        })
+        for move in moves:
+            state = self.fast_turn(state, self.get_turn_from_string(move))
 
-    while(True):
+        return state
 
-      k+=1
+    def get_hash_from_state(self, state):
+        ep, cp, co = state
+        return (ep << 29) + (cp << 13) + co
 
-      currentPosition = queue.popleft()
-      i = ( currentPosition['axisApplied'] + 1 ) & 1
+    def get_algorithm(self, sequence):
+        moves = 'UL*'
+        postfix = ['', '2', '2\'', '\'']
+        algorithm = {
+            'string': '',
+            'turns': 0,
+            'fTurns': 0  # fifth turns
+        }
 
-      for j in range(4):
+        for move in sequence:
+            if type(move) is not int:
+                print(sequence, move, type(move))
 
-        currentState = dict(currentPosition['state'])
-        currentSolution = list(currentPosition['solution'])
+            move = move
+            i = move >> 3
+            j = move & 3
 
-        # Apply move to current iteration
-        move = (i << 3) + j
+            if i < 2:
+                algorithm['string'] += moves[i] + postfix[j] + ' '
+                algorithm['turns'] += 1
+                algorithm['fTurns'] += int(((j + 1) % 4) / 2) + 1
 
-        currentState = self.doFastTurn(currentState, move)
-        currentSolution.append(move)
+        return algorithm
 
-        # Is solved?
-        isSolved = self.isSolved(currentState)
-        if not isSolved:
-          queue.append({
-            'state': currentState,
-            'axisApplied': i,
-            'solution': currentSolution
-          })
+    def get_move_string_from_solution(self, hash_solution):
+        solution = []
 
-        else:
-          endTime = time.time() - startTime
-          solution = self.getAlgorithm( currentSolution + isSolved )
-          solutions += 1
-          print('Found a solution #%i/%i in %f seconds\n%s (%i,%i moves)' % (solutions, maxSolutions, endTime, solution['string'], solution['turns'], solution['fTurns'] ) )
-          if solutions >= maxSolutions:
-            return {
-              'state': currentState,
-              'solution': solution
-            }
+        for move in hash_solution[::-1]:
+            i = move >> 3
+            j = 3 - (move & 3)
+            solution.append((i << 3) + j)
 
-  def doFastTurn(self, state, move):
-
-    surface = move >> 3
-    length = move % 4
-
-    newState = dict(state)
-
-    for i in range(length + 1):
-      newState['edgePermutation'] = self.EPMoveTable[newState['edgePermutation']][surface]
-      newState['cornerPermutation'] = self.CPMoveTable[newState['cornerPermutation']][surface]
-      newState['cornerOrientation'] = self.COMoveTable[newState['cornerOrientation']][surface]
-
-    return newState
-
-  def isSolved(self, state):
-
-    if self.hasHashTable:
-      hashedState = self.getHashFromState( state )
-      if hashedState in self.hashTable:
-        reverseSolution = self.hashTable[self.getHashFromState( state )]
-        solution = self.getMoveStringFromHashSolution( reverseSolution )
-        # print('Found solution in hashtable', solution)
         return solution
 
-    if state == self.solvedState:
-      return [16]
+    def get_turn_from_string(self, string):
+        moves = {
+            'U': 0,
+            'U2': 1,
+            'U\'2': 2,
+            'U\'': 3,
+            'L': 8,
+            'L2': 9,
+            'L\'2': 10,
+            'L\'': 11
+        }
 
-    return False
+        move = moves[string]
 
-  def applyState(self, state):
+        return move
 
-    strEP = ','.join([str(x) for x in state['edgePermutation']])
-
-    state['edgePermutation'] = self.revEPMoveTable[strEP]
-
-    self.state = state
-
-  def applySequence(self, moves, state):
-
-    moves = moves.split(' ')
-
-    for move in moves:
-      state = self.doFastTurn(state, self.getTurnFromString(move))
-
-    return state
-
-  def getHashFromState(self, state):
-
-    hash = (state['edgePermutation'] << 29) + (state['cornerPermutation'] << 13) + (state['cornerOrientation'])
-    return hash
-
-  def getAlgorithm(self, sequence):
-
-    string = ''
-    moves = 'UL*'
-    postfix = ['','2','2\'', '\'']
-    algorithm = {
-      'string': '',
-      'turns': 0,
-      'fTurns': 0 # fifth turns
-    }
-
-    for move in sequence:
-      i = move >> 3
-      j = move & 3
-
-      if i < 2:
-        algorithm['string'] += moves[i] + postfix[j] + ' '
-        algorithm['turns'] += 1
-        algorithm['fTurns'] += int( ( ( j + 1 ) % 4 ) / 2 ) + 1
-
-    return algorithm
-    
-  def getMoveStringFromHashSolution(self, hashSolution):
-
-    solution = []
-
-    for move in hashSolution[::-1]:
-      i = move >> 3
-      j = 3 - (move & 3)
-      solution.append((i<<3) + j)
-
-    return solution
-
-  def getTurnFromString(self, string):
-
-    moves = {
-      'U': 0,
-      'U2': 1,
-      'U\'2': 2,
-      'U\'': 3,
-      'L': 8,
-      'L2': 9,
-      'L\'2': 10,
-      'L\'': 11
-    }
-
-    move = moves[string]
-
-    return move
-
-  def getStateFromState(self, state):
-
-    strEP = ','.join([str(x) for x in state['edgePermutation']])
-    state['edgePermutation'] = self.revEPMoveTable[strEP]
-
-    strCP = ','.join([str(x) for x in state['cornerPermutation']])
-    state['cornerPermutation'] = self.revCPMoveTable[strCP]
-
-    strCO = ','.join([str(x) for x in state['cornerOrientation']])
-    state['cornerOrientation'] = self.revCOMoveTable[strCO]
-
-    return state
+    def get_state_from_state(self, state):
+        state = (
+            self.rev_ep_move_table[state['ep']],
+            self.rev_cp_move_table[state['cp']],
+            self.rev_co_move_table[state['co']]
+        )
+        return state
